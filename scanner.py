@@ -2,31 +2,34 @@ import gpiod
 import time
 
 CHIP_NAME = 'gpiochip1'
-# These are the most common 'Line' offsets for the Orin Nano header
-test_offsets = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 
-def scan_pins():
+def find_working_pin():
     chip = gpiod.Chip(CHIP_NAME)
-    print("Starting Pin Scanner... Move your wire across the pins!")
+    # We will test common Orin Nano ranges: 0-20 and 100-120
+    test_range = list(range(0, 30)) + list(range(100, 150))
     
-    try:
-        for offset in test_offsets:
-            print(f"Testing Line Offset: {offset}")
+    print("Scanning for a valid GPIO line... Watch your LED!")
+    
+    for offset in test_range:
+        try:
             line = chip.get_line(offset)
-            try:
-                line.request(consumer="Scanner", type=gpiod.LINE_REQ_DIR_OUT)
-                for _ in range(3): # Blink 3 times fast
-                    line.set_value(1)
-                    time.sleep(0.2)
-                    line.set_value(0)
-                    time.sleep(0.2)
-                line.release()
-            except:
-                print(f"Line {offset} is busy, skipping...")
-            time.sleep(0.5)
+            line.request(consumer="Finder", type=gpiod.LINE_REQ_DIR_OUT)
             
-    except KeyboardInterrupt:
-        print("Scanner stopped.")
+            print(f"Testing Line: {offset}...", end="\r")
+            
+            # Blink fast so you can see it
+            for _ in range(4):
+                line.set_value(1)
+                time.sleep(0.1)
+                line.set_value(0)
+                time.sleep(0.1)
+                
+            line.release()
+        except (ValueError, OSError, PermissionError):
+            # This skips 'Invalid Argument' or 'Busy' lines automatically
+            continue
+
+    print("\nScan complete. Did any offset make the LED flash?")
 
 if __name__ == "__main__":
-    scan_pins()
+    find_working_pin()
