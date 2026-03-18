@@ -1,44 +1,40 @@
 import gpiod
 import time
 
-# CONFIGURATION FOR PHYSICAL PIN 12
-CHIP_NAME = 'gpiochip1'
-LINE_OFFSET = 18  # This is the offset for Physical Pin 12
+CHIP_PATH = '/dev/gpiochip1'
+LINE_OFFSET = 18  # Physical Pin 12
 
 def run_blink():
+    # Use 'with' so it automatically cleans up even if it crashes
     try:
-        # 1. Open the GPIO chip
-        chip = gpiod.Chip(CHIP_NAME)
-        # 2. Select Line 18
-        line = chip.get_line(LINE_OFFSET)
-        
-        # 3. FORCE the pin to become an OUTPUT
-        # We use consumer='BlinkTest' so the system knows who is using it
-        config = gpiod.line_request()
-        config.consumer = "BlinkTest"
-        config.request_type = gpiod.line_request.DIRECTION_OUTPUT
-        line.request(config)
-
-        print(f"Successfully claimed Line {LINE_OFFSET} on {CHIP_NAME}.")
-        print("Blinking LED on Physical Pin 12... (Press Ctrl+C to stop)")
-
-        while True:
-            line.set_value(1)  # Turn ON
-            print("LED: [ ON  ]")
-            time.sleep(1)
+        with gpiod.request_lines(
+            CHIP_PATH,
+            consumer="BlinkTest",
+            config={
+                LINE_OFFSET: gpiod.LineSettings(
+                    direction=gpiod.line.Direction.OUTPUT,
+                    output_value=gpiod.line.Value.LOW
+                )
+            },
+        ) as request:
+            print(f"Claimed Line {LINE_OFFSET} on {CHIP_PATH}!")
+            print("Blinking LED on Physical Pin 12... (Ctrl+C to stop)")
             
-            line.set_value(0)  # Turn OFF
-            print("LED: [ OFF ]")
-            time.sleep(1)
+            while True:
+                request.set_value(LINE_OFFSET, gpiod.line.Value.ACTIVE)
+                print("LED: [ ON  ]")
+                time.sleep(1)
+                
+                request.set_value(LINE_OFFSET, gpiod.line.Value.INACTIVE)
+                print("LED: [ OFF ]")
+                time.sleep(1)
 
     except PermissionError:
-        print("Error: Permission Denied. Try running with 'sudo'.")
+        print("Error: Permission Denied. Run with 'sudo python3 test_blink.py'")
     except Exception as e:
-        print(f"An error occurred: {e}")
-    finally:
-        if 'line' in locals():
-            line.release()
-            print("\nPin released. Hardware reset to default.")
+        print(f"Error: {e}")
+        print("\nIf it says 'Invalid argument', run 'gpioinfo' to verify Line 18 is correct.")
 
 if __name__ == "__main__":
     run_blink()
+    
