@@ -1,6 +1,7 @@
 import Jetson.GPIO as GPIO
 import time
 
+GPIO.setinfo(GPIO.JETSON_ORIN_NANO)
 # Use Physical Pin Numbering
 GPIO.setmode(GPIO.BOARD)
 
