@@ -3,7 +3,7 @@ import time
 
 # After enabling PWM in Jetson-IO, Pin 33 is usually 48 or 49
 CHIP_NAME = 'gpiochip1'
-LINE_OFFSET = 48 
+LINE_OFFSET = 49
 
 def test_v1_style():
     try:
