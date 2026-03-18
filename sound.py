@@ -15,4 +15,4 @@ def play_audio(file_path):
         time.sleep(0.1)
 
 if __name__ == "__main__":
-    play_audio("test.wav")
+    play_audio("sit.mp4")
