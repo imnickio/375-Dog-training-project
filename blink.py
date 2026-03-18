@@ -1,24 +1,21 @@
-import Jetson.GPIO as GPIO
+import gpiod
 import time
 
-GPIO.setinfo(GPIO.JETSON_ORIN_NANO)
-# Use Physical Pin Numbering
-GPIO.setmode(GPIO.BOARD)
+# Pin 15 on the header is usually offset 12 or 15 on the chip.
+# We will use the 'gpiod' way which is much more stable for "Super" boards.
+LED_PIN = 15 
 
-LED_PIN = 7
+# On Orin Nano, the main header is usually chip 0
+chip = gpiod.Chip('0')
+line = chip.get_line(LED_PIN)
+line.request(consumer='LED', type=gpiod.LINE_REQ_DIR_OUT)
 
 try:
-    GPIO.setup(LED_PIN, GPIO.OUT, initial=GPIO.LOW)
-    print("Blinking LED on Pin 15... Press Ctrl+C to stop.")
-    
+    print("Direct GPIO Access: Success!")
     while True:
-        GPIO.output(LED_PIN, GPIO.HIGH)
+        line.set_value(1)
         time.sleep(0.5)
-        GPIO.output(LED_PIN, GPIO.LOW)
+        line.set_value(0)
         time.sleep(0.5)
-
 except KeyboardInterrupt:
-    print("\nStopping...")
-finally:
-    # This resets the pins so they are safe for the next run
-    GPIO.cleanup()
+    line.release()
