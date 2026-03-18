@@ -1,21 +1,44 @@
 import gpiod
 import time
 
-# Pin 15 on the header is usually offset 12 or 15 on the chip.
-# We will use the 'gpiod' way which is much more stable for "Super" boards.
-LED_PIN = 15 
+# CONFIGURATION FOR PHYSICAL PIN 12
+CHIP_NAME = 'gpiochip1'
+LINE_OFFSET = 18  # This is the offset for Physical Pin 12
 
-# On Orin Nano, the main header is usually chip 0
-chip = gpiod.Chip('0')
-line = chip.get_line(LED_PIN)
-line.request(consumer='LED', type=gpiod.LINE_REQ_DIR_OUT)
+def run_blink():
+    try:
+        # 1. Open the GPIO chip
+        chip = gpiod.Chip(CHIP_NAME)
+        # 2. Select Line 18
+        line = chip.get_line(LINE_OFFSET)
+        
+        # 3. FORCE the pin to become an OUTPUT
+        # We use consumer='BlinkTest' so the system knows who is using it
+        config = gpiod.line_request()
+        config.consumer = "BlinkTest"
+        config.request_type = gpiod.line_request.DIRECTION_OUTPUT
+        line.request(config)
 
-try:
-    print("Direct GPIO Access: Success!")
-    while True:
-        line.set_value(1)
-        time.sleep(0.5)
-        line.set_value(0)
-        time.sleep(0.5)
-except KeyboardInterrupt:
-    line.release()
+        print(f"Successfully claimed Line {LINE_OFFSET} on {CHIP_NAME}.")
+        print("Blinking LED on Physical Pin 12... (Press Ctrl+C to stop)")
+
+        while True:
+            line.set_value(1)  # Turn ON
+            print("LED: [ ON  ]")
+            time.sleep(1)
+            
+            line.set_value(0)  # Turn OFF
+            print("LED: [ OFF ]")
+            time.sleep(1)
+
+    except PermissionError:
+        print("Error: Permission Denied. Try running with 'sudo'.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        if 'line' in locals():
+            line.release()
+            print("\nPin released. Hardware reset to default.")
+
+if __name__ == "__main__":
+    run_blink()
