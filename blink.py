@@ -9,7 +9,7 @@ LED_PIN = 7
 GPIO.setup(LED_PIN, GPIO.OUT, initial=GPIO.LOW)
 # Blink LED continuously
 while True:
-GPIO.output(LED_PIN, GPIO.HIGH)
-time.sleep(0.5)
-GPIO.output(LED_PIN, GPIO.LOW)
-time.sleep(0.5)
+  GPIO.output(LED_PIN, GPIO.HIGH)
+  time.sleep(0.5)
+  GPIO.output(LED_PIN, GPIO.LOW)
+  time.sleep(0.5)
