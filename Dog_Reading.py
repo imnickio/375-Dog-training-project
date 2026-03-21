@@ -17,7 +17,7 @@ def is_dog_present(image_path):
             img_data = base64.b64encode(image_file.read()).decode("utf-8")
 
         
-        url = "https://detect.roboflow.com/" + PROJECT_ID + "/" + VERSION + "?api_key=" + API_KEY
+        url = "https://detect.roboflow.com/jenwindows-workspace/" + PROJECT_ID + "/1?api_key=" + API_KEY
         
         
         response = requests.post(url, data=img_data)
