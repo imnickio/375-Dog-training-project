@@ -23,12 +23,14 @@ try:
             print("Camera failed to grab frame...")
             time.sleep(2)
             continue
+        ret, frame = cap.read()
+        if ret:
+            small_frame = cv2.resize(frame, (416, 416))
+            img = "scan.jpg"
+            cv2.imwrite(img, small_frame)
+            
+            print("Checking AI with resized image...")
         
-        # Take a picture and check it
-        img = "scan.jpg"
-        cv2.imwrite(img, frame)
-        print("Saved image size: " + str(os.path.getsize(img)) + " bytes")
-        print("Checking AI...")
         if is_dog_present(img):
             print("MATCH! Dog found.")
             sound.play_audio("goodboy_fixed.wav")
