@@ -26,7 +26,7 @@ try:
         # Take a picture and check it
         img = "scan.jpg"
         cv2.imwrite(img, frame)
-        
+        print("Saved image size: " + str(os.path.getsize(img)) + " bytes")
         print("Checking AI...")
         if is_dog_present(img):
             print("MATCH! Dog found.")
