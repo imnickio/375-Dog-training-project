@@ -1,7 +1,7 @@
 import requests
 import base64
 import os
-
+import json 
 
 API_KEY = "2DqULRG06WgrWpX6WSwC" 
 WORKSPACE = "jenwindows-workspace"
@@ -16,8 +16,14 @@ def is_dog_present(image_path):
         with open(image_path, "rb") as image_file:
             img_data = base64.b64encode(image_file.read()).decode("utf-8")
 
-        
+
         url = "https://detect.roboflow.com/" + WORKSPACE + "/" + PROJECT + "/" + VERSION
+        
+      
+        headers = {
+            "Content-Type": "application/json"
+        }
+        
         
         payload = {
             "api_key": API_KEY,
@@ -25,19 +31,19 @@ def is_dog_present(image_path):
             "confidence": 40
         }
 
-        
-        response = requests.post(url, json=payload)
+  
+        response = requests.post(url, headers=headers, data=json.dumps(payload))
         
         if response.status_code == 200:
             result = response.json()
             if "predictions" in result and len(result["predictions"]) > 0:
-                print("AI SUCCESS: Dog spotted!")
+                print("SUCCESS: Dog detected!")
                 return True
             return False
         else:
-            print("Server Error (" + str(response.status_code) + "): " + response.text)
+            print("Status: " + str(response.status_code) + " - " + response.text)
             return False
 
     except Exception as e:
-        print("Pi Error: " + str(e))
+        print("Error: " + str(e))
         return False
