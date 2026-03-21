@@ -1,38 +1,44 @@
+import requests
+import base64
 import os
-import json
 
-# Use the PRIVATE Key here
+# Use your API Key (either one should work now)
 API_KEY = "2DqULRG06WgrWpX6WSwC" 
+# For Public projects, we use the simple ID
 PROJECT_ID = "find-dogs-tuzes-instant/1"
 
 def is_dog_present(image_path):
     if not os.path.exists(image_path):
         return False
 
-    # The -k tells curl to IGNORE old security certificates (Fixes 403/SSL errors)
-    # The -s makes it quiet
-    # The -d @path sends the image data directly
-    url = "https://detect.roboflow.com/" + PROJECT_ID + "?api_key=" + API_KEY
-    command = "curl -k -s -X POST '" + url + "' --data-binary @" + image_path
-    
     try:
-        # Run the command and capture the text it spits out
-        response_text = os.popen(command).read()
+        with open(image_path, "rb") as image_file:
+            img_data = base64.b64encode(image_file.read()).decode("utf-8")
+
+        # PUBLIC ENDPOINT: Notice we use 'infer.roboflow.com' 
+        # instead of 'detect.roboflow.com'
+        url = "https://infer.roboflow.com/" + PROJECT_ID
         
-        # If the server is still mad, it will print the error here
-        if "Forbidden" in response_text or "Unauthorized" in response_text:
-            print("AI Access Denied: Check if the API Key is copied correctly!")
-            return False
+        params = {
+            "api_key": API_KEY,
+            "confidence": "40"
+        }
 
-        # Turn the text into a Python list
-        result = json.loads(response_text)
-
-        if "predictions" in result and len(result["predictions"]) > 0:
-            print("AI SUCCESS: Spotted a " + str(result["predictions"][0]["class"]))
-            return True
+        # Send as a plain string (data=) rather than a JSON object
+        response = requests.post(url, params=params, data=img_data)
+        
+        print("AI Response Code: " + str(response.status_code))
+        
+        if response.status_code == 200:
+            result = response.json()
+            if "predictions" in result and len(result["predictions"]) > 0:
+                print("SUCCESS: Dog detected in Public Project!")
+                return True
+        else:
+            print("Response text: " + response.text)
             
         return False
 
     except Exception as e:
-        print("System Error: " + str(e))
+        print("Network Error: " + str(e))
         return False
