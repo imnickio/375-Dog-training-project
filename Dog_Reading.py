@@ -1,7 +1,6 @@
-import requests
-import base64
 import os
-import json 
+import json
+import base64
 
 API_KEY = "2DqULRG06WgrWpX6WSwC" 
 WORKSPACE = "jenwindows-workspace"
@@ -13,37 +12,25 @@ def is_dog_present(image_path):
         return False
 
     try:
-        with open(image_path, "rb") as image_file:
-            img_data = base64.b64encode(image_file.read()).decode("utf-8")
+       
+        url = f"https://detect.roboflow.com/{WORKSPACE}/{PROJECT}/{VERSION}?api_key={API_KEY}"
+        
+        command = f"curl -s -X POST '{url}' --data-binary @{image_path}"
+        
 
-
-        url = "https://detect.roboflow.com/" + WORKSPACE + "/" + PROJECT + "/" + VERSION
+        response_text = os.popen(command).read()
         
-      
-        headers = {
-            "Content-Type": "application/json"
-        }
-        
-        
-        payload = {
-            "api_key": API_KEY,
-            "image": img_data,
-            "confidence": 40
-        }
-
-  
-        response = requests.post(url, headers=headers, data=json.dumps(payload))
-        
-        if response.status_code == 200:
-            result = response.json()
-            if "predictions" in result and len(result["predictions"]) > 0:
-                print("SUCCESS: Dog detected!")
-                return True
+        if not response_text:
             return False
-        else:
-            print("Status: " + str(response.status_code) + " - " + response.text)
-            return False
+
+        result = json.loads(response_text)
+
+        if "predictions" in result and len(result["predictions"]) > 0:
+            print("CURL SUCCESS: Dog found!")
+            return True
+        
+        return False
 
     except Exception as e:
-        print("Error: " + str(e))
+        print("System Error: " + str(e))
         return False
