@@ -42,3 +42,5 @@ def is_dog_present(image_path):
     except Exception as e:
         print("Network Error: " + str(e))
         return False
+
+#curl -X POST "https://infer.roboflow.com/find-dogs-tuzes-instant/1?api_key=YOUR_API_KEY" --data-binary @scan.jpg
