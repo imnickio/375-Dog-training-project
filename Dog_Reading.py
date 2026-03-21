@@ -43,4 +43,4 @@ def is_dog_present(image_path):
         print("Network Error: " + str(e))
         return False
 
-#curl -X POST "https://infer.roboflow.com/find-dogs-tuzes-instant/1?api_key=YOUR_API_KEY" --data-binary @scan.jpg
+#curl -v -m 30 -X POST "https://infer.roboflow.com/find-dogs-tuzes-instant/1?api_key=2DqULRG06WgrWpX6WSwC" \ -H "Content-Type: application/x-www-form-urlencoded" \ --data-binary @scan.jpg
