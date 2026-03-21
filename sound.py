@@ -16,7 +16,7 @@ def play_audio(filename):
 
     # 1. Check if the file actually exists before trying to play it
     if not os.path.exists(file_path):
-        print(f"Error: File not found at {file_path}")
+        print("Error: File not found at {file_path}")
         print("Make sure the file is inside the '375-Dog-training-project' folder.")
         return
 
@@ -25,7 +25,7 @@ def play_audio(filename):
     pygame.mixer.init()
 
     try:
-        print(f"Loading: {filename}...")
+        print("Loading: {filename}...")
         # Use music.load instead of Sound() for better format support
         pygame.mixer.music.load(file_path)
         pygame.mixer.music.play()
@@ -38,7 +38,7 @@ def play_audio(filename):
         print("Playback finished.")
 
     except pygame.error as e:
-        print(f"Pygame Error: {e}")
+        print("Pygame Error: {e}")
     finally:
         # Clean up the mixer so the file isn't "locked" by Windows
         pygame.mixer.quit()
