@@ -30,7 +30,7 @@ def play_audio(filename):
         pygame.mixer.music.load(file_path)
         pygame.mixer.music.play()
 
-        print(f"Playing...")
+        print("Playing...")
         # Keep the script alive while the music plays
         while pygame.mixer.music.get_busy():
             time.sleep(0.1)
