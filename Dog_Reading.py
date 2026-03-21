@@ -1,6 +1,8 @@
+import requests
+import base64
 import os
 import json
-import base64
+
 
 API_KEY = "2DqULRG06WgrWpX6WSwC" 
 WORKSPACE = "jenwindows-workspace"
@@ -9,37 +11,39 @@ VERSION = "1"
 
 def is_dog_present(image_path):
     if not os.path.exists(image_path):
-        print("Error: scan.jpg not found!")
         return False
 
     try:
-        url = "https://detect.roboflow.com/" + WORKSPACE + "/" + PROJECT + "/" + VERSION + "?api_key=" + API_KEY
-        command = "curl -s -X POST '" + url + "' --data-binary @" + image_path
+        with open(image_path, "rb") as image_file:
+            img_data = base64.b64encode(image_file.read()).decode("utf-8")
+
         
-        # Run the command
-        response_text = os.popen(command).read()
+        url = "https://detect.roboflow.com/" + WORKSPACE + "/" + PROJECT + "/" + VERSION
         
-        # --- NEW DEBUG LINES ---
-        print("RAW RESPONSE FROM AI: " + response_text)
-        # -----------------------
 
-        if not response_text:
-            print("CURL returned nothing. Check your internet!")
-            return False
+        payload = {
+            "api_key": API_KEY,
+            "image": img_data,
+            "confidence": 40
+        }
 
-        result = json.loads(response_text)
 
-        # Check if the server sent an error message instead of a prediction
-        if "error" in result:
-            print("AI Server Error: " + str(result["error"]))
-            return False
-
-        if "predictions" in result and len(result["predictions"]) > 0:
-            print("SUCCESS: Dog found!")
-            return True
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(url, data=json.dumps(payload), headers=headers)
         
+       
+        print("Server Status: " + str(response.status_code))
+        
+        if response.status_code == 200:
+            result = response.json()
+            if "predictions" in result and len(result["predictions"]) > 0:
+                print("SUCCESS: Dog spotted!")
+                return True
+        else:
+            print("Server said: " + response.text)
+            
         return False
 
     except Exception as e:
-        print("Python Error: " + str(e))
+        print("Error: " + str(e))
         return False
