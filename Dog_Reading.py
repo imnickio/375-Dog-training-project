@@ -12,12 +12,12 @@ def is_dog_present(image_path):
         return False
 
     try:
-       
-        url = f"https://detect.roboflow.com/{WORKSPACE}/{PROJECT}/{VERSION}?api_key={API_KEY}"
         
-        command = f"curl -s -X POST '{url}' --data-binary @{image_path}"
+        url = "https://detect.roboflow.com/" + WORKSPACE + "/" + PROJECT + "/" + VERSION + "?api_key=" + API_KEY
         
-
+        command = "curl -s -X POST '" + url + "' --data-binary @" + image_path
+        
+ 
         response_text = os.popen(command).read()
         
         if not response_text:
