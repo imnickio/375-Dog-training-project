@@ -17,7 +17,7 @@ def spin_dispenser(seconds=1.5):
     """
     Spins the motor in one direction to dispense a treat.
     """
-    print(f"Motor: Spinning for {seconds}s...")
+    print("Motor: Spinning")
     
     GPIO.output(AIN1, GPIO.HIGH)
     GPIO.output(AIN2, GPIO.LOW)
