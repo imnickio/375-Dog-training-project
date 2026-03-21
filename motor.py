@@ -1,29 +1,34 @@
 import RPi.GPIO as GPIO
 import time
 
-# Pin setup (BCM numbering)
-PWMA = 18 # Physical Pin 12
-AIN1 = 17 # Physical Pin 11
-AIN2 = 27 # Physical Pin 13
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setup([PWMA, AIN1, AIN2], GPIO.OUT)
+PWMA = 18 # Physical Pin 12 - Connected to PWMA
+AIN1 = 17 # Physical Pin 11 - Connected to AIN1
+AIN2 = 27 # Physical Pin 13 - Connected to AIN2
 
-def spin_motor(duration):
-    print("Dispensing Treat...")
-    # Set Direction
+def setup_motors():
+    """Initializes the GPIO pins for the motor driver."""
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup([PWMA, AIN1, AIN2], GPIO.OUT)
+    
+    GPIO.output(PWMA, GPIO.HIGH)
+
+def spin_dispenser(seconds=1.5):
+    """
+    Spins the motor in one direction to dispense a treat.
+    """
+    print(f"Motor: Spinning for {seconds}s...")
+    
     GPIO.output(AIN1, GPIO.HIGH)
     GPIO.output(AIN2, GPIO.LOW)
-    # Set Speed (On)
-    GPIO.output(PWMA, GPIO.HIGH)
     
-    time.sleep(duration)
+    time.sleep(seconds)
     
-    # Stop
-    GPIO.output(PWMA, GPIO.LOW)
-    print("Done!")
+    
+    GPIO.output(AIN1, GPIO.LOW)
+    GPIO.output(AIN2, GPIO.LOW)
+    print("Motor: Stopped.")
 
-try:
-    spin_motor(1.5)
-finally:
+def cleanup():
+    """Cleans up GPIO pins on exit."""
     GPIO.cleanup()
