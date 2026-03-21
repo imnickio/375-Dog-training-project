@@ -3,7 +3,7 @@ import base64
 import os
 
 
-API_KEY = "2DqULRG06WgrWpX6WSwC"
+API_KEY = "rf_8O04kCCci9YNMgspAnO42LIxOvq2"
 PROJECT_ID = "find-dogs-tuzes-instant" 
 VERSION = "1"
 
