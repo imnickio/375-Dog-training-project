@@ -1,22 +1,40 @@
-from inference_sdk import InferenceHTTPClient
+import requests
+import base64
 import os
 
-client = InferenceHTTPClient(
-    api_url="https://serverless.roboflow.com",
-    api_key="AU8JxB1DTPRTyxA9qcqL"
-)
+# Your friend's API details
+API_KEY = "AU8JxB1DTPRTyxA9qcqL"
+WORKFLOW_ID = "find-dogs"
+WORKSPACE = "jenwindows-workspace"
 
 def is_dog_present(image_path):
     if not os.path.exists(image_path):
         return False
+
     try:
-        result = client.run_workflow(
-            workspace_name="jenwindows-workspace",
-            workflow_id="find-dogs",
-            images={"image": image_path}
-        )
-        predictions = result[0]["model_predictions"]["predictions"]
-        return len(predictions) > 0
+        # 1. Read the image and encode it for the internet
+        with open(image_path, "rb") as image_file:
+            img_data = base64.b64encode(image_file.read()).decode("utf-8")
+
+        # 2. Build the request URL for Roboflow's API
+        url = "https://detect.roboflow.com/dog-detection/1" # Generic dog model URL
+        params = {
+            "api_key": API_KEY
+        }
+
+        # 3. Send the image to the cloud
+        response = requests.post(url, params=params, data=img_data)
+        result = response.json()
+
+        # 4. Check if a dog was found
+        # Roboflow returns a list of 'predictions'
+        if "predictions" in result and len(result["predictions"]) > 0:
+            # You can even check confidence here (e.g., > 0.5)
+            print("AI found a dog with " + str(result['predictions'][0]['confidence']) + " confidence")
+            return True
+        
+        return False
+
     except Exception as e:
-        print("AI Error: " + str(e)) # Legacy string style
+        print("Network/AI Error: " + str(e))
         return False
