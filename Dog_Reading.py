@@ -1,13 +1,10 @@
 import requests
 import base64
 import os
-import json
 
 
 API_KEY = "2DqULRG06WgrWpX6WSwC" 
-WORKSPACE = "jenwindows-workspace"
-PROJECT = "find-dogs-tuzes-instant"
-VERSION = "1"
+PROJECT_ID = "find-dogs-tuzes-instant/1" 
 
 def is_dog_present(image_path):
     if not os.path.exists(image_path):
@@ -17,33 +14,29 @@ def is_dog_present(image_path):
         with open(image_path, "rb") as image_file:
             img_data = base64.b64encode(image_file.read()).decode("utf-8")
 
+    
+        url = "https://detect.roboflow.com/" + PROJECT_ID
         
-        url = "https://detect.roboflow.com/" + WORKSPACE + "/" + PROJECT + "/" + VERSION
-        
-
-        payload = {
+        params = {
             "api_key": API_KEY,
-            "image": img_data,
-            "confidence": 40
+            "confidence": "40"
         }
 
-
-        headers = {"Content-Type": "application/json"}
-        response = requests.post(url, data=json.dumps(payload), headers=headers)
-        
        
-        print("Server Status: " + str(response.status_code))
+        response = requests.post(url, params=params, data=img_data)
+        
+        print("Inference Status: " + str(response.status_code))
         
         if response.status_code == 200:
             result = response.json()
             if "predictions" in result and len(result["predictions"]) > 0:
-                print("SUCCESS: Dog spotted!")
+                print("INFERENCE SUCCESS: Dog spotted!")
                 return True
         else:
-            print("Server said: " + response.text)
+            print("Response: " + response.text)
             
         return False
 
     except Exception as e:
-        print("Error: " + str(e))
+        print("Inference Error: " + str(e))
         return False
