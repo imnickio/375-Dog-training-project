@@ -4,25 +4,42 @@ import motor
 import sound
 from Dog_Reading import is_dog_present
 
+print("--- Initializing Hardware ---")
 motor.setup_motors()
-cap = cv2.VideoCapture(0)
 
-print("System Active on Stretch OS...")
+print("--- Hardware Ready ---")
+
+cap = cv2.VideoCapture(0)
+if not cap.isOpened():
+    print("ERROR: Could not open camera!")
+
+print("--- Starting Main Loop: Watching for Dog ---")
 
 try:
     while True:
         ret, frame = cap.read()
-        if ret:
-            img = "scan.jpg"
-            cv2.imwrite(img, frame)
-            
-            if is_dog_present(img):
-                print("Dog detected!")
-                sound.play_audio("goodboy_fixed.wav")
-                motor.spin_dispenser(1.5)
-                time.sleep(10)
+        if not ret:
+            print("Camera failed to grab frame...")
+            time.sleep(2)
+            continue
         
-        time.sleep(1)
+        # Take a picture and check it
+        img = "scan.jpg"
+        cv2.imwrite(img, frame)
+        
+        print("Checking AI...")
+        if is_dog_present(img):
+            print("MATCH! Dog found.")
+            sound.play_audio("goodboy_fixed.wav")
+            motor.spin_dispenser(1.5)
+            print("Waiting 10s cooldown...")
+            time.sleep(10)
+        else:
+            print("No dog seen. Sleeping 1s...")
+            time.sleep(1)
+
+except KeyboardInterrupt:
+    print("\nStopping system...")
 finally:
     cap.release()
     motor.cleanup()
