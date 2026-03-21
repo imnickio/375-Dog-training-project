@@ -24,11 +24,15 @@ def is_dog_present(image_path):
         
         response = requests.post(url, params=params, data=img_data)
         result = response.json()
+        
+        print("AI Response: " + str(result))
 
-        if "predictions" in result and len(result["predictions"]) > 0:
-            
-            print("AI found a dog with " + str(result['predictions'][0]['confidence']) + " confidence")
-            return True
+        if "predictions" in result:
+            for pred in result["predictions"]:
+                if pred['class'] == 'dog' and pred['confidence'] > 0.4:
+                    print("Found dog! Confidence: " + str(pred['confidence']))
+                    return True
+
         
         return False
 
