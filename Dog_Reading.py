@@ -22,25 +22,25 @@ def is_dog_present(*args):
     if not capture_image():
         return False
 
-    with open("scan.jpg", "rb") as f:
-        img_base64 = base64.b64encode(f.read()).decode("utf-8")
-
-    params = {"api_key": API_KEY}
-    
-    try:
-        response = requests.post(URL, params=params, data=img_base64, timeout=10)
+    # The 'files' dictionary automatically sets the Content-Type header to multipart/form-data
+    with open("scan.jpg", "rb") as image_file:
+        files = {"file": image_file}
+        params = {"api_key": API_KEY}
         
-        if response.status_code == 200:
-            predictions = response.json().get("predictions", [])
-            for p in predictions:
-                if p['class'] == 'dog' and p['confidence'] > 0.4:
-                    print("Dog detected! Confidence: {}".format(p['confidence']))
-                    return True
-            print("No dog in frame.")
-        else:
-            print("API Error: {} - {}".format(response.status_code, response.text))
+        try:
+            # We use 'files=' instead of 'data=' to fix the 400 error
+            response = requests.post(URL, params=params, files=files, timeout=10)
             
-    except Exception as e:
-        print("Network Error: {}".format(e))
-        
+            if response.status_code == 200:
+                predictions = response.json().get("predictions", [])
+                for p in predictions:
+                    if p['class'] == 'dog' and p['confidence'] > 0.4:
+                        print("DOG DETECTED!")
+                        return True
+                print("No dog found.")
+            else:
+                print("API Error: {} - {}".format(response.status_code, response.text))
+        except Exception as e:
+            print("Network Error: {}".format(e))
+            
     return False
