@@ -29,7 +29,7 @@ def capture_image(filename="scan.jpg"):
     except Exception:
         return False
 
-def is_dog_present(*args):
+def is_dog_present():
     if not capture_image():
         return False
 
