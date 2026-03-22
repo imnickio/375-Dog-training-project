@@ -11,7 +11,7 @@ print("--- Starting Main Loop: Watching for Dog ---")
 
 try:
     while True:
-        # We no longer pass 'img' because Dog_Reading handles its own capture
+        
         print("Checking AI...")
         
         if is_dog_present():
@@ -21,7 +21,7 @@ try:
             print("Waiting 10s cooldown...")
             time.sleep(10)
         else:
-            # Increased sleep to 2s to give the CPU/RAM a breather
+            
             print("No dog seen. Sleeping 2s...")
             time.sleep(2)
 
