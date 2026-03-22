@@ -8,41 +8,44 @@ API_KEY = "2DqULRG06WgrWpX6WSwC"
 MODEL_ID = "coco/3"
 
 def is_dog_present(*args):
-    """Uses the reliable 'curl' method, compatible with Python 3.5."""
+    """Captures an image and prints ALL detected objects for debugging."""
     
-    # 1. Take the photo using fswebcam
+    # 1. Capture the image
     try:
-        # We skip 2 frames (-S 2) to let the camera adjust its brightness
+        # -S 3: Skip 3 frames to give the camera more time to focus/brighten
         subprocess.run([
-            "fswebcam", "-r", "640x480", "--no-banner", "-S", "2", "scan.jpg"
+            "fswebcam", "-r", "640x480", "--no-banner", "-S", "3", "scan.jpg"
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
-        # If 'Device Busy', try to kick the ghost processes
-        subprocess.run(["sudo", "fuser", "-k", "/dev/video0"], stderr=subprocess.DEVNULL)
+        print("Camera Hardware Busy!")
         return False
 
-    # 2. Setup the Curl Command
+    # 2. Run the AI check
     url = "https://detect.roboflow.com/{}?api_key={}".format(MODEL_ID, API_KEY)
-    curl_command = [
-        "curl", "-s", "-X", "POST", url, "--data-binary", "@scan.jpg"
-    ]
+    curl_command = ["curl", "-s", "-X", "POST", url, "--data-binary", "@scan.jpg"]
     
     try:
-        # For Python 3.5, we use stdout=subprocess.PIPE instead of capture_output
         process = subprocess.Popen(curl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
-        
-        # Convert bytes to string and then to JSON
         response_data = json.loads(stdout.decode('utf-8'))
         
         predictions = response_data.get("predictions", [])
+        
+        # --- DEBUG SECTION: SEE WHAT THE AI SEES ---
+        if not predictions:
+            print("AI Result: Screen is blank or nothing recognized.")
+        else:
+            print("--- AI IS SEEING: ---")
+            for p in predictions:
+                print("- {} ({:.1%})".format(p['class'], p['confidence']))
+        # -------------------------------------------
+
         for p in predictions:
-            # Check for 'dog' (or 'microwave' for testing!)
-            if p['class'] == 'dog' and p['confidence'] > 0.4:
-                print("DOG SPOTTED! Confidence: {:.2f}".format(p['confidence']))
+            # The Goal: Look for the dog
+            if p['class'] == 'dog' and p['confidence'] > 0.35:
+                print(">>> SUCCESS: TARGET DOG IDENTIFIED! <<<")
                 return True
         
-        print("No dog found in kitchen.")
         return False
 
     except Exception as e:
