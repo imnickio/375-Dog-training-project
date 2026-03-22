@@ -9,13 +9,19 @@ MODEL_ID = "coco/3"
 URL = "https://detect.roboflow.com/{}".format(MODEL_ID)
 
 def capture_image(filename="scan.jpg"):
-    """Uses fswebcam to grab a frame and then IMMEDIATELY release the camera."""
+    """Uses the low-level v4l2-ctl to grab a frame."""
     try:
-        # We use -F 1 to take just one frame and exit quickly
-        subprocess.run(["fswebcam", "-r", "640x480", "--no-banner", "-F", "1", filename], check=True)
+        # This command forces a capture without trying to 'negotiate' with the driver
+        subprocess.run([
+            "v4l2-ctl", "--device=/dev/video0", 
+            "--set-fmt-video=width=640,height=480,pixelformat=MJPG", 
+            "--stream-mmap", "--stream-count=1", 
+            "--stream-to=" + filename
+        ], check=True)
         return True
     except Exception as e:
-        print("Camera is still busy! Try: sudo fuser -k /dev/video0")
+        # If even that fails, your Pi might not be giving the camera enough POWER.
+        print("Hardware Error: Is your power supply at least 2.5A?")
         return False
 
 def is_dog_present(*args):
