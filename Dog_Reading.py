@@ -4,6 +4,7 @@ import os
 import base64
 import requests
 import time
+import gc  # Garbage Collector to reclaim RAM
 
 # --- CONFIGURATION ---
 API_KEY = "2DqULRG06WgrWpX6WSwC"
@@ -11,19 +12,19 @@ MODEL_ID = "coco/3"
 URL = "https://detect.roboflow.com/{}".format(MODEL_ID)
 
 def capture_image(filename="scan.jpg"):
-    # Clear memory/files from previous runs
+    """Uses a low-res snap to save memory."""
+    # Clear any ghost processes holding the camera
     subprocess.run(["sudo", "fuser", "-k", "/dev/video0"], stderr=subprocess.DEVNULL)
+    
     if os.path.exists(filename):
         os.remove(filename)
 
     try:
-        # Use a smaller resolution (320x240) to save RAM
-        # The AI doesn't need 1080p to see a dog!
+        # -r 320x240: Half the resolution = 4x less memory
         subprocess.run([
-            "fswebcam", "-r", "320x240", "--no-banner", "-F", "1", "-S", "10", filename
+            "fswebcam", "-r", "320x240", "--no-banner", "-F", "1", "-S", "5", filename
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
-        time.sleep(1)
         return os.path.exists(filename)
     except Exception:
         return False
@@ -33,19 +34,19 @@ def is_dog_present(*args):
         return False
 
     try:
-        # 1. Open the file and encode it 
-        with open("scan.jpg", "rb") as image_file:
-            # We encode it and immediately send it so it doesn't sit in a variable
-            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+        # 1. Encode image and immediately prepare headers
+        with open("scan.jpg", "rb") as f:
+            img_data = base64.b64encode(f.read()).decode('utf-8')
 
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         params = {"api_key": API_KEY}
         
-        # 2. Send the request
-        response = requests.post(URL, params=params, data=encoded_string, headers=headers, timeout=10)
+        # 2. Make the request
+        response = requests.post(URL, params=params, data=img_data, headers=headers, timeout=10)
         
-        # 3. Clear the big string from memory immediately
-        del encoded_string 
+        # 3. CRITICAL: Wipe the image data from RAM immediately
+        img_data = None
+        gc.collect() 
 
         if response.status_code == 200:
             predictions = response.json().get("predictions", [])
