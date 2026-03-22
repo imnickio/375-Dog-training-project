@@ -1,8 +1,8 @@
 import base64
 import requests
-import pygame
-import pygame.camera
 import time
+import os
+import subprocess
 
 # --- CONFIGURATION ---
 API_KEY = "2DqULRG06WgrWpX6WSwC"
@@ -10,17 +10,12 @@ MODEL_ID = "coco/3"
 URL = "https://detect.roboflow.com/{}".format(MODEL_ID)
 
 def capture_image(filename="scan.jpg"):
+    """Uses fswebcam to bypass pygame's ioctl format errors."""
     try:
-        pygame.camera.init()
-        cam = pygame.camera.Camera("/dev/video0", (640, 480))
-        cam.start()
-        time.sleep(0.1)
-        img = cam.get_image()
-        pygame.image.save(img, filename)
-        cam.stop()
+        subprocess.run(["fswebcam", "-r", "640x480", "--no-banner", "-S", "2", filename], check=True)
         return True
     except Exception as e:
-        print("Camera Error: {}".format(e))
+        print("Hardware Camera Error: {}".format(e))
         return False
 
 def is_dog_present(*args):
