@@ -1,46 +1,58 @@
-import requests
 import base64
-import os
+import requests
+import pygame
+import pygame.camera
+import time
 
-# Use your API Key (either one should work now)
-API_KEY = "2DqULRG06WgrWpX6WSwC" 
-# For Public projects, we use the simple ID
-PROJECT_ID = "find-dogs-tuzes-instant/1"
+# --- CONFIGURATION ---
+API_KEY = "2DqULRG06WgrWpX6WSwC"
+# Using the Public COCO model to avoid workspace permission issues
+URL = "https://detect.roboflow.com/coco/3"
 
-def is_dog_present(image_path):
-    if not os.path.exists(image_path):
+def capture_image(filename="scan.jpg"):
+    """Captures a frame from the USB camera."""
+    try:
+        pygame.camera.init()
+        cam = pygame.camera.Camera("/dev/video0", (640, 480))
+        cam.start()
+        # Give the camera a split second to adjust to light
+        time.sleep(0.1)
+        img = cam.get_image()
+        pygame.image.save(img, filename)
+        cam.stop()
+        return True
+    except Exception as e:
+        print(f"Camera Error: {e}")
         return False
 
+def is_dog_present():
+    """Returns True if a dog is detected in the kitchen."""
+    if not capture_image():
+        return False
+
+    # 1. Prepare the image as a Base64 string (Required by Roboflow API)
+    with open("scan.jpg", "rb") as f:
+        img_base64 = base64.b64encode(f.read()).decode("utf-8")
+
+    # 2. Set up the API call
+    params = {"api_key": API_KEY}
+    
     try:
-        with open(image_path, "rb") as image_file:
-            img_data = base64.b64encode(image_file.read()).decode("utf-8")
-
-        # PUBLIC ENDPOINT: Notice we use 'infer.roboflow.com' 
-        # instead of 'detect.roboflow.com'
-        url = "https://infer.roboflow.com/" + PROJECT_ID
-        
-        params = {
-            "api_key": API_KEY,
-            "confidence": "40"
-        }
-
-        # Send as a plain string (data=) rather than a JSON object
-        response = requests.post(url, params=params, data=img_data)
-        
-        print("AI Response Code: " + str(response.status_code))
+        # 3. Send the request
+        response = requests.post(URL, params=params, data=img_base64, timeout=10)
         
         if response.status_code == 200:
-            result = response.json()
-            if "predictions" in result and len(result["predictions"]) > 0:
-                print("SUCCESS: Dog detected in Public Project!")
-                return True
+            predictions = response.json().get("predictions", [])
+            for p in predictions:
+                # Filter for 'dog' and ensure it's at least 40% confident
+                if p['class'] == 'dog' and p['confidence'] > 0.4:
+                    print(f"Dog detected! Confidence: {p['confidence']:.2f}")
+                    return True
+            print("No dog in frame.")
         else:
-            print("Response text: " + response.text)
+            print(f"API Error: {response.status_code} - {response.text}")
             
-        return False
-
     except Exception as e:
-        print("Network Error: " + str(e))
-        return False
-
-#curl -v -m 30 -X POST "https://infer.roboflow.com/find-dogs-tuzes-instant/1?api_key=2DqULRG06WgrWpX6WSwC" \ -H "Content-Type: application/x-www-form-urlencoded" \ --data-binary @scan.jpg
+        print(f"Network Error: {e}")
+        
+    return False
