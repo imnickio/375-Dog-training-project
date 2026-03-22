@@ -11,36 +11,34 @@ MODEL_ID = "coco/3"
 URL = "https://detect.roboflow.com/{}".format(MODEL_ID)
 
 def capture_image(filename="scan.jpg"):
-    """Attempts to capture using sudo and multiple device paths."""
+    """Forcefully captures an image by clearing system locks first."""
+    # 1. Kill any 'zombie' camera processes
+    subprocess.run(["sudo", "fuser", "-k", "/dev/video0"], stderr=subprocess.DEVNULL)
+    
+    # 2. Clean up old files
     if os.path.exists(filename):
-        try:
-            os.remove(filename)
-        except:
-            pass
-            
-    # Try video0 first, then video1 as a backup
-    for device in ["/dev/video0", "/dev/video1"]:
-        if not os.path.exists(device):
-            continue
-            
-        try:
-            # We use 'sudo' here because sometimes the 'pi' user lacks video group rights
-            subprocess.run([
-                "sudo", "fswebcam", "-d", device, "-r", "640x480", 
-                "--no-banner", "-F", "1", "-S", "20", filename
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            
-            time.sleep(1.5) # Critical delay for slow SD cards
-            if os.path.exists(filename) and os.path.getsize(filename) > 0:
-                return True
-        except Exception:
-            continue
+        os.remove(filename)
+
+    try:
+        # 3. Use the exact command you said works in the terminal
+        # -S 15 gives the camera sensor time to 'warm up' so it doesn't save a 0-byte file
+        subprocess.run([
+            "fswebcam", "-r", "640x480", "--no-banner", "-F", "1", "-S", "15", filename
+        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        
+        # 4. Final check - wait for the SD card to write
+        time.sleep(2)
+        if os.path.exists(filename) and os.path.getsize(filename) > 0:
+            return True
+    except Exception as e:
+        print("System call failed: {}".format(e))
+        
     return False
 
 def is_dog_present(*args):
-    """Sends Base64 data with the required Content-Type header."""
+    """The main AI logic."""
     if not capture_image():
-        print("!! CAMERA ERROR: No image saved to disk !!")
+        print("!! CAMERA ERROR: The script couldn't save the file. !!")
         return False
 
     try:
@@ -50,25 +48,19 @@ def is_dog_present(*args):
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         params = {"api_key": API_KEY}
         
-        response = requests.post(
-            URL, 
-            params=params, 
-            data=encoded_string, 
-            headers=headers, 
-            timeout=15
-        )
+        response = requests.post(URL, params=params, data=encoded_string, headers=headers, timeout=15)
         
         print("\n--- AI RESPONSE ---")
         if response.status_code == 200:
             predictions = response.json().get("predictions", [])
             if not predictions:
-                print("Seeing clearly, but no dog found.")
+                print("Camera is working, but no dog in frame.")
             for p in predictions:
                 print("- {} ({:.0%})".format(p['class'], p['confidence']))
-                if p['class'] == 'dog' and p['confidence'] > 0.30:
+                if p['class'] == 'dog' and p['confidence'] > 0.35:
                     return True
         else:
-            print("Server Error: {}".format(response.text))
+            print("API Error: {}".format(response.text))
             
         return False
 
