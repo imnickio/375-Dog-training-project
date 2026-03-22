@@ -12,17 +12,18 @@ MODEL_ID = "coco/3"
 URL = "https://detect.roboflow.com/{}".format(MODEL_ID)
 
 def capture_image(filename="scan.jpg"):
-    """Uses a low-res snap to save memory."""
-    # Clear any ghost processes holding the camera
+    """Captures a higher-res snap now that memory is stable."""
+    # Force kill any lingering camera locks
     subprocess.run(["sudo", "fuser", "-k", "/dev/video0"], stderr=subprocess.DEVNULL)
     
     if os.path.exists(filename):
         os.remove(filename)
 
     try:
-        # -r 320x240: Half the resolution = 4x less memory
+        # Back to 640x480 for better detail
+        # -S 30: Gives the camera ~1.5 seconds to adjust brightness
         subprocess.run([
-            "fswebcam", "-r", "320x240", "--no-banner", "-F", "1", "-S", "5", filename
+            "fswebcam", "-r", "640x480", "--no-banner", "-F", "1", "-S", "30", filename
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
         return os.path.exists(filename)
