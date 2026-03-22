@@ -11,59 +11,50 @@ MODEL_ID = "coco/3"
 URL = "https://detect.roboflow.com/{}".format(MODEL_ID)
 
 def capture_image(filename="scan.jpg"):
-    """Forcefully captures an image by clearing system locks first."""
-    # 1. Kill any 'zombie' camera processes
+    # Clear memory/files from previous runs
     subprocess.run(["sudo", "fuser", "-k", "/dev/video0"], stderr=subprocess.DEVNULL)
-    
-    # 2. Clean up old files
     if os.path.exists(filename):
         os.remove(filename)
 
     try:
-        # 3. Use the exact command you said works in the terminal
-        # -S 15 gives the camera sensor time to 'warm up' so it doesn't save a 0-byte file
+        # Use a smaller resolution (320x240) to save RAM
+        # The AI doesn't need 1080p to see a dog!
         subprocess.run([
-            "fswebcam", "-r", "640x480", "--no-banner", "-F", "1", "-S", "15", filename
+            "fswebcam", "-r", "320x240", "--no-banner", "-F", "1", "-S", "10", filename
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
-        # 4. Final check - wait for the SD card to write
-        time.sleep(2)
-        if os.path.exists(filename) and os.path.getsize(filename) > 0:
-            return True
-    except Exception as e:
-        print("System call failed: {}".format(e))
-        
-    return False
+        time.sleep(1)
+        return os.path.exists(filename)
+    except Exception:
+        return False
 
 def is_dog_present(*args):
-    """The main AI logic."""
     if not capture_image():
-        print("!! CAMERA ERROR: The script couldn't save the file. !!")
         return False
 
     try:
+        # 1. Open the file and encode it 
         with open("scan.jpg", "rb") as image_file:
+            # We encode it and immediately send it so it doesn't sit in a variable
             encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
 
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         params = {"api_key": API_KEY}
         
-        response = requests.post(URL, params=params, data=encoded_string, headers=headers, timeout=15)
+        # 2. Send the request
+        response = requests.post(URL, params=params, data=encoded_string, headers=headers, timeout=10)
         
-        print("\n--- AI RESPONSE ---")
+        # 3. Clear the big string from memory immediately
+        del encoded_string 
+
         if response.status_code == 200:
             predictions = response.json().get("predictions", [])
-            if not predictions:
-                print("Camera is working, but no dog in frame.")
             for p in predictions:
-                print("- {} ({:.0%})".format(p['class'], p['confidence']))
+                print("- Found: {} ({:.0%})".format(p['class'], p['confidence']))
                 if p['class'] == 'dog' and p['confidence'] > 0.35:
                     return True
-        else:
-            print("API Error: {}".format(response.text))
-            
         return False
 
     except Exception as e:
-        print("Python Error: {}".format(e))
+        print("Memory/Network Error: {}".format(e))
         return False
