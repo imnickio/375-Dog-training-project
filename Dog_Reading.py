@@ -23,7 +23,7 @@ def capture_image(filename="scan.jpg"):
         print("Camera Error: {}".format(e))
         return False
 
-def is_dog_present():
+def is_dog_present(*args):
     if not capture_image():
         return False
 
