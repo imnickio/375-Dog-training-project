@@ -1,60 +1,58 @@
 import subprocess
 import json
 import os
-import time
+import base64
+import requests
 
 # --- CONFIGURATION ---
 API_KEY = "2DqULRG06WgrWpX6WSwC"
 MODEL_ID = "coco/3"
+URL = "https://detect.roboflow.com/{}".format(MODEL_ID)
 
-def is_dog_present(*args):
-    """Captures an image and prints the RAW server response for troubleshooting."""
-    
-    # 1. Capture the image
+def capture_image(filename="scan.jpg"):
+    """Captures a single frame using fswebcam."""
     try:
-        # We use -F 1 for a quick snap to avoid 'Device Busy'
+        # -F 1: grab 1 frame. -S 10: skip 10 frames to allow light adjustment
         subprocess.run([
-            "fswebcam", "-r", "640x480", "--no-banner", "-F", "1", "scan.jpg"
+            "fswebcam", "-r", "640x480", "--no-banner", "-F", "1", "-S", "10", filename
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return os.path.exists(filename)
     except Exception:
-        print("!! Camera Hardware Error (Busy) !!")
         return False
 
-    # 2. Prepare the Curl Command
-    url = "https://detect.roboflow.com/{}?api_key={}".format(MODEL_ID, API_KEY)
-    curl_command = ["curl", "-s", "-X", "POST", url, "--data-binary", "@scan.jpg"]
-    
+def is_dog_present(*args):
+    """Encodes image to Base64 and sends to Roboflow."""
+    if not capture_image():
+        print("Camera capture failed.")
+        return False
+
     try:
-        # Run the curl and catch the output
-        process = subprocess.Popen(curl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
+        # 1. Convert the image to a Base64 string
+        with open("scan.jpg", "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+
+        # 2. Setup the Request
+        params = {"api_key": API_KEY}
         
-        # Decode the raw text
-        raw_response = stdout.decode('utf-8')
+        # 3. Send as DATA (not files) to satisfy the 'Invalid base64' error
+        response = requests.post(URL, params=params, data=encoded_string, timeout=15)
         
-        # --- TROUBLESHOOTING: PRINT EVERYTHING ---
         print("\n--- RAW SERVER RESPONSE ---")
-        print(raw_response)
+        print(response.text)
         print("---------------------------\n")
 
-        # Parse the JSON
-        response_data = json.loads(raw_response)
-        
-        # Check for API-level errors (like 'Invalid Key')
-        if "error" in response_data:
-            print("API Error Message: {}".format(response_data["error"]))
-            return False
-
-        predictions = response_data.get("predictions", [])
-        
-        for p in predictions:
-            # Check for 'dog'
-            if p['class'] == 'dog' and p['confidence'] > 0.35:
-                print(">>> DOG DETECTED ({:.1%}) <<<".format(p['confidence']))
-                return True
-        
+        if response.status_code == 200:
+            predictions = response.json().get("predictions", [])
+            for p in predictions:
+                if p['class'] == 'dog' and p['confidence'] > 0.35:
+                    print("DOG DETECTED!")
+                    return True
+            print("No dog found.")
+        else:
+            print("Server returned error: {}".format(response.status_code))
+            
         return False
 
     except Exception as e:
-        print("Script Error: {}".format(e))
+        print("Error: {}".format(e))
         return False
