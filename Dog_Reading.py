@@ -53,7 +53,7 @@ def is_dog_present():
             predictions = response.json().get("predictions", [])
             for p in predictions:
                 print("- Found: {} ({:.0%})".format(p['class'], p['confidence']))
-                if p['class'] == 'dog' and p['confidence'] > 0.35:
+                if p['class'] == 'person' and p['confidence'] > 0.35:
                     return True
         return False
 
