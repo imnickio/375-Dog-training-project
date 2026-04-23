@@ -62,7 +62,7 @@ def check_ai():
 
 def run_test():
     print("--- STARTING HARDWARE + AI TEST ---")
-    motor.setup()
+    motor.setup_motors()
     
     try:
         while True:
