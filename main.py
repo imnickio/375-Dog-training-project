@@ -1,25 +1,22 @@
 import time
-import random
 import gc
 import motor
 import Dog_Reading
 import sound_handler
 
 # --- CONFIG ---
-
 POSES_TO_TRAIN = ["sit", "lie"] 
 WAIT_TIME = 1.0  
-SAMPLES = 2   
+SAMPLES = 2    
 
 def wait_for_dog():
-    print("System Idle: Waiting for dog...")
+    print("\nSystem Idle: Waiting for dog to enter frame...")
     while True:
         current_pose = Dog_Reading.get_dog_pose()
-       
         if current_pose in ["sit", "lie", "stand"]:
-            print(f"Dog detected ({current_pose})! Starting session...")
+            print(f"Dog detected! Pose: {current_pose.upper()}. Starting session...")
             return True
-        time.sleep(0.5) 
+        time.sleep(0.5)
 
 def train_until_success(target_pose):
     success = False
@@ -29,40 +26,56 @@ def train_until_success(target_pose):
         attempts += 1
         audio_file = "sit_fixed.wav" if target_pose == "sit" else "lay_command.wav"
         
-        print(f"\n[Attempt {attempts}] Command: {target_pose.upper()}")
+        print(f"\n[Attempt {attempts}] Goal: {target_pose.upper()}")
         sound_handler.play_audio(audio_file)
         
-        
+ 
         time.sleep(WAIT_TIME)
         
         print(f"Checking for {target_pose}...")
-       
-        current_ai_see = Dog_Reading.get_dog_pose()
+
+        detections = [Dog_Reading.get_dog_pose() for _ in range(SAMPLES)]
         
-        if current_ai_see == target_pose:
-            print(f"MATCH! AI confirmed {target_pose.upper()}.")
+
+        if target_pose in detections:
+            print(f"MATCH! AI confirmed {target_pose.upper()} in {detections}.")
             sound_handler.play_audio("goodboy_fixed.wav")
             motor.spin_dispenser(1.5)
             success = True
         else:
-            print(f"Saw {current_ai_see}. Repeating...")
+            print(f"Not yet. AI saw {detections}. Repeating...")
             time.sleep(0.5)
 
 def main():
     motor.setup_motors()
-    print("\n--- PAO-VLOV ONLINE (V3.0) ---")
+    print("\n" + "="*30)
+    print("PAO-VLOV ONLINE: ALTERNATING MODE")
+    print("="*30)
+    
+
+    current_index = 0
     
     try:
         while True:
+         
             wait_for_dog()
-            target = random.choice(POSES_TO_TRAIN)
+            
+
+            target = POSES_TO_TRAIN[current_index]
+            
+          
             train_until_success(target)
             
-            print("Great job! Resetting for 10 seconds...")
+        
+            current_index = 1 - current_index
+            
+            print(f"\nRound complete! Next goal will be: {POSES_TO_TRAIN[current_index].upper()}")
+            print("Resting for 10 seconds...")
             time.sleep(10)
             gc.collect()
             
     except KeyboardInterrupt:
+        print("\nShutting down Pao-vlov...")
         motor.cleanup()
 
 if __name__ == "__main__":
