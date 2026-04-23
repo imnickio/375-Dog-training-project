@@ -6,25 +6,22 @@ import Dog_Reading
 import sound_handler
 
 # --- CONFIG ---
-POSES_TO_TRAIN = ["sit", "lay"]
-WAIT_TIME = 1.5  
-SAMPLES = 2      
+
+POSES_TO_TRAIN = ["sit", "lie"] 
+WAIT_TIME = 1.0  
+SAMPLES = 2   
 
 def wait_for_dog():
-    """Only triggers if it sees an actual dog pose, NOT 'indoor' or 'nothing'"""
     print("System Idle: Waiting for dog...")
     while True:
         current_pose = Dog_Reading.get_dog_pose()
-        
-     
-        if current_pose in ["sit", "lay", "stand"]:
+       
+        if current_pose in ["sit", "lie", "stand"]:
             print(f"Dog detected ({current_pose})! Starting session...")
             return True
-        
-        time.sleep(1)
+        time.sleep(0.5) 
 
 def train_until_success(target_pose):
-    """The 'Stubborn' Loop: Repeats command until dog obeys"""
     success = False
     attempts = 0
     
@@ -35,38 +32,33 @@ def train_until_success(target_pose):
         print(f"\n[Attempt {attempts}] Command: {target_pose.upper()}")
         sound_handler.play_audio(audio_file)
         
-       
+        
         time.sleep(WAIT_TIME)
         
-  
         print(f"Checking for {target_pose}...")
-        detections = [Dog_Reading.get_dog_pose() for _ in range(SAMPLES)]
+       
+        current_ai_see = Dog_Reading.get_dog_pose()
         
-        if target_pose in detections:
-            print(f"SUCCESS! Dog is in {target_pose} pose.")
+        if current_ai_see == target_pose:
+            print(f"MATCH! AI confirmed {target_pose.upper()}.")
             sound_handler.play_audio("goodboy_fixed.wav")
             motor.spin_dispenser(1.5)
             success = True
         else:
-            print(f"Not quite. AI saw: {detections}. Repeating command...")
-           
-            time.sleep(1)
+            print(f"Saw {current_ai_see}. Repeating...")
+            time.sleep(0.5)
 
 def main():
     motor.setup_motors()
-    print("\n--- PAO-VLOV ONLINE ---")
+    print("\n--- PAO-VLOV ONLINE (V3.0) ---")
     
     try:
         while True:
-            
             wait_for_dog()
-            
             target = random.choice(POSES_TO_TRAIN)
-            
-        
             train_until_success(target)
             
-            print("Round complete! Resetting for 10 seconds...")
+            print("Great job! Resetting for 10 seconds...")
             time.sleep(10)
             gc.collect()
             
