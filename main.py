@@ -3,9 +3,9 @@ import random
 import gc
 import motor
 import Dog_Reading
-import sound_handler  # <--- Importing your existing handler
+import sound_handler  
 
-# --- CONFIG ---
+
 POSES_TO_TRAIN = ["sit", "lay"]
 WAIT_TIME = 4 
 SAMPLES = 3   
@@ -55,7 +55,7 @@ def run_training_round():
 
 def main():
     motor.setup_motors()
-    print("\n--- DOG TRAINER 3000 ONLINE ---")
+    print("\n---PAOVLOV ONLINE ---")
     
     try:
         while True:
