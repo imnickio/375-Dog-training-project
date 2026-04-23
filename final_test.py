@@ -31,10 +31,10 @@ def capture_image(filename="scan.jpg"):
         return False
 
 def check_ai():
-    """Captures a photo and asks the Classification AI for the pose"""
+    """Captures a photo and asks the AI for the pose"""
     if not capture_image():
         print("! Failed to grab frame from USB Camera")
-        return None
+        return None, 0
 
     try:
         with open("scan.jpg", "rb") as f:
@@ -49,15 +49,36 @@ def check_ai():
 
         if response.status_code == 200:
             res = response.json()
-            prediction = res.get("top")
-            confidence = res.get("predictions", {}).get(prediction, {}).get("confidence", 0)
-            return prediction, confidence
+            
+            # --- FIXED LOGIC START ---
+            # If it returns a list (Object Detection style)
+            if isinstance(res, list):
+                if len(res) > 0:
+                    # Sort by confidence and take the best one
+                    best_pred = max(res, key=lambda x: x.get('confidence', 0))
+                    return best_pred.get('class'), best_pred.get('confidence', 0)
+                return "nothing", 0
+            
+            # If it returns a dictionary (Classification style)
+            else:
+                prediction = res.get("top")
+                # Handle the nested dictionary for confidence
+                preds = res.get("predictions", {})
+                # If predictions is a list inside the dict (another common Roboflow format)
+                if isinstance(preds, list) and len(preds) > 0:
+                    return preds[0].get('class'), preds[0].get('confidence', 0)
+                
+                # Standard classification dict format
+                confidence = preds.get(prediction, {}).get("confidence", 0)
+                return prediction, confidence
+            # --- FIXED LOGIC END ---
+
         else:
             print(f"! Roboflow Error: {response.status_code}")
             return None, 0
 
     except Exception as e:
-        print(f"! System Error: {e}")
+        print(f"! AI Parsing Error: {e}")
         return None, 0
 
 def run_test():
