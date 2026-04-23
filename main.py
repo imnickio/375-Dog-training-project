@@ -3,65 +3,71 @@ import random
 import gc
 import motor
 import Dog_Reading
-import sound_handler  
+import sound_handler
 
-
+# --- CONFIG ---
 POSES_TO_TRAIN = ["sit", "lay"]
-WAIT_TIME = 4 
-SAMPLES = 3   
+WAIT_TIME = 1.5  
+SAMPLES = 2      
 
 def wait_for_dog():
-    """Loops until the AI sees something that isn't 'indoor' or 'nothing'"""
-    print("System Idle: Waiting for dog to enter frame...")
+    """Only triggers if it sees an actual dog pose, NOT 'indoor' or 'nothing'"""
+    print("System Idle: Waiting for dog...")
     while True:
         current_pose = Dog_Reading.get_dog_pose()
         
-        # If AI sees sit, lay, stand, etc. (and NOT indoor/nothing)
-        if current_pose not in ["indoor", "nothing", None]:
-            print(f"Dog detected! Pose: {current_pose}. Starting training...")
+     
+        if current_pose in ["sit", "lay", "stand"]:
+            print(f"Dog detected ({current_pose})! Starting session...")
             return True
         
-        time.sleep(2) # Check every 2 seconds to save CPU/Battery
+        time.sleep(1)
 
-def run_training_round():
-    # 1. Wait until a dog is actually there
-    wait_for_dog()
-
-    # 2. Randomly pick a command
-    target_pose = random.choice(POSES_TO_TRAIN)
-    audio_file = "sit_fixed.wav" if target_pose == "sit" else "lay_command.wav"
+def train_until_success(target_pose):
+    """The 'Stubborn' Loop: Repeats command until dog obeys"""
+    success = False
+    attempts = 0
     
-    # 3. Use the imported handler
-    sound_handler.play_audio(audio_file)
-    
-    print(f"Command given: {target_pose.upper()}. Waiting {WAIT_TIME}s...")
-    time.sleep(WAIT_TIME)
-    
-    # 4. Verify with AI
-    detections = []
-    for _ in range(SAMPLES):
-        detections.append(Dog_Reading.get_dog_pose())
-        time.sleep(0.3)
-    
-    # 5. Success Check
-    if detections.count(target_pose) >= 2:
-        print(f"MATCH! Dog performed {target_pose.upper()}.")
-        sound_handler.play_audio("goodboy_fixed.wav")
-        motor.spin_dispenser(1.5)
-        return True
-    else:
-        print(f"FAILED. AI saw: {detections}")
-        return False
+    while not success:
+        attempts += 1
+        audio_file = "sit_fixed.wav" if target_pose == "sit" else "lay_command.wav"
+        
+        print(f"\n[Attempt {attempts}] Command: {target_pose.upper()}")
+        sound_handler.play_audio(audio_file)
+        
+       
+        time.sleep(WAIT_TIME)
+        
+  
+        print(f"Checking for {target_pose}...")
+        detections = [Dog_Reading.get_dog_pose() for _ in range(SAMPLES)]
+        
+        if target_pose in detections:
+            print(f"SUCCESS! Dog is in {target_pose} pose.")
+            sound_handler.play_audio("goodboy_fixed.wav")
+            motor.spin_dispenser(1.5)
+            success = True
+        else:
+            print(f"Not quite. AI saw: {detections}. Repeating command...")
+           
+            time.sleep(1)
 
 def main():
     motor.setup_motors()
-    print("\n---PAOVLOV ONLINE ---")
+    print("\n--- PAO-VLOV ONLINE ---")
     
     try:
         while True:
-            run_training_round()
-            print("Round complete. Resetting...")
-            time.sleep(5)
+            
+            wait_for_dog()
+            
+            target = random.choice(POSES_TO_TRAIN)
+            
+        
+            train_until_success(target)
+            
+            print("Round complete! Resetting for 10 seconds...")
+            time.sleep(10)
             gc.collect()
             
     except KeyboardInterrupt:
